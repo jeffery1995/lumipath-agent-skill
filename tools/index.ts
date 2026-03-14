@@ -2,10 +2,22 @@
  * LumiPath Agent Tools - Tool Handlers
  * 
  * 这些是实际的工具实现，通过 HTTP API 调用 LumiPath 后端
+ * 后端地址: https://lumipath.cn
  * 适用于 OpenClaw 或任何需要调用 LumiPath API 的场景
  */
 
 import { z } from "zod";
+
+// LumiPath 后端地址
+const LUMIPATH_BASE_URL = "https://lumipath.cn";
+
+// ============================================================================
+// Context 类型定义
+// ============================================================================
+interface ToolContext {
+  apiKey: string;
+  userId: string;
+}
 
 // ============================================================================
 // 工具 1: connections_list - 查看已连接的社交账号
@@ -22,12 +34,10 @@ export const connectionsList = {
       }
     }
   },
-  execute: async ({ platform }: { platform?: string }, context: { lumipathUrl: string; apiKey: string; userId: string }) => {
-    const { lumipathUrl, apiKey, userId } = context;
+  execute: async ({ platform }: { platform?: string }, context: ToolContext) => {
+    const { apiKey, userId } = context;
     
-    // 调用 MongoDB - 需要通过后端 API 或直接连接
-    // 这里假设有 /api/v1/accounts 端点
-    const res = await fetch(`${lumipathUrl}/api/v1/accounts?linked=true${platform ? `&platform=${platform}` : ''}`, {
+    const res = await fetch(`${LUMIPATH_BASE_URL}/api/v1/accounts?linked=true${platform ? `&platform=${platform}` : ''}`, {
       headers: {
         'x-api-key': apiKey,
         'x-user-id': userId
@@ -63,14 +73,14 @@ export const ttsList = {
       }
     }
   },
-  execute: async ({ language, gender }: { language?: string; gender?: string }, context: { lumipathUrl: string; apiKey: string; userId: string }) => {
-    const { lumipathUrl, apiKey, userId } = context;
+  execute: async ({ language, gender }: { language?: string; gender?: string }, context: ToolContext) => {
+    const { apiKey, userId } = context;
     
     const params = new URLSearchParams();
     if (language) params.set('language', language);
     if (gender) params.set('gender', gender);
     
-    const res = await fetch(`${lumipathUrl}/api/v1/tts?${params}`, {
+    const res = await fetch(`${LUMIPATH_BASE_URL}/api/v1/tts?${params}`, {
       headers: {
         'x-api-key': apiKey,
         'x-user-id': userId
@@ -100,15 +110,15 @@ export const videoList = {
       search: { type: "string" }
     }
   },
-  execute: async ({ page, limit, search }: { page?: number; limit?: number; search?: string }, context: { lumipathUrl: string; apiKey: string; userId: string }) => {
-    const { lumipathUrl, apiKey, userId } = context;
+  execute: async ({ page, limit, search }: { page?: number; limit?: number; search?: string }, context: ToolContext) => {
+    const { apiKey, userId } = context;
     
     const params = new URLSearchParams();
     params.set('page', String(page || 1));
     params.set('limit', String(limit || 10));
     if (search) params.set('search', search);
     
-    const res = await fetch(`${lumipathUrl}/api/v1/videos?${params}`, {
+    const res = await fetch(`${LUMIPATH_BASE_URL}/api/v1/videos?${params}`, {
       headers: {
         'x-api-key': apiKey,
         'x-user-id': userId
@@ -139,10 +149,10 @@ export const videoUploadFromUrl = {
     },
     required: ["url"]
   },
-  execute: async ({ url, filename, title }: { url: string; filename?: string; title?: string }, context: { lumipathUrl: string; apiKey: string; userId: string }) => {
-    const { lumipathUrl, apiKey, userId } = context;
+  execute: async ({ url, filename, title }: { url: string; filename?: string; title?: string }, context: ToolContext) => {
+    const { apiKey, userId } = context;
     
-    const res = await fetch(`${lumipathUrl}/api/v1/videos/upload`, {
+    const res = await fetch(`${LUMIPATH_BASE_URL}/api/v1/videos/upload`, {
       method: 'POST',
       headers: {
         'x-api-key': apiKey,
@@ -196,10 +206,10 @@ export const localizationStart = {
     subtitleStyle?: string;
     ocr?: boolean;
     copyright?: boolean;
-  }, context: { lumipathUrl: string; apiKey: string; userId: string }) => {
-    const { lumipathUrl, apiKey, userId } = context;
+  }, context: ToolContext) => {
+    const { apiKey, userId } = context;
     
-    const res = await fetch(`${lumipathUrl}/api/v1/localization`, {
+    const res = await fetch(`${LUMIPATH_BASE_URL}/api/v1/localization`, {
       method: 'POST',
       headers: {
         'x-api-key': apiKey,
@@ -233,8 +243,8 @@ export const localizationList = {
       limit: { type: "number" }
     }
   },
-  execute: async ({ vid, status, page, limit }: { vid?: string; status?: string; page?: number; limit?: number }, context: { lumipathUrl: string; apiKey: string; userId: string }) => {
-    const { lumipathUrl, apiKey, userId } = context;
+  execute: async ({ vid, status, page, limit }: { vid?: string; status?: string; page?: number; limit?: number }, context: ToolContext) => {
+    const { apiKey, userId } = context;
     
     const params = new URLSearchParams();
     if (vid) params.set('vid', vid);
@@ -242,7 +252,7 @@ export const localizationList = {
     if (page) params.set('page', String(page));
     if (limit) params.set('limit', String(limit));
     
-    const res = await fetch(`${lumipathUrl}/api/v1/localization?${params}`, {
+    const res = await fetch(`${LUMIPATH_BASE_URL}/api/v1/localization?${params}`, {
       headers: {
         'x-api-key': apiKey,
         'x-user-id': userId
@@ -271,10 +281,10 @@ export const localizationGet = {
     },
     required: ["taskId"]
   },
-  execute: async ({ taskId }: { taskId: string }, context: { lumipathUrl: string; apiKey: string; userId: string }) => {
-    const { lumipathUrl, apiKey, userId } = context;
+  execute: async ({ taskId }: { taskId: string }, context: ToolContext) => {
+    const { apiKey, userId } = context;
     
-    const res = await fetch(`${lumipathUrl}/api/v1/localization?taskId=${taskId}`, {
+    const res = await fetch(`${LUMIPATH_BASE_URL}/api/v1/localization?taskId=${taskId}`, {
       headers: {
         'x-api-key': apiKey,
         'x-user-id': userId
@@ -338,10 +348,10 @@ export const repurpose = {
       youtubeConnectionIds?: string[];
       instagramConnectionIds?: string[];
     };
-  }, context: { lumipathUrl: string; apiKey: string; userId: string }) => {
-    const { lumipathUrl, apiKey, userId } = context;
+  }, context: ToolContext) => {
+    const { apiKey, userId } = context;
     
-    const res = await fetch(`${lumipathUrl}/api/v1/repurpose`, {
+    const res = await fetch(`${LUMIPATH_BASE_URL}/api/v1/repurpose`, {
       method: 'POST',
       headers: {
         'x-api-key': apiKey,
@@ -389,10 +399,10 @@ export const socialPost = {
     tiktokConnectionIds?: string[];
     youtubeConnectionIds?: string[];
     instagramConnectionIds?: string[];
-  }, context: { lumipathUrl: string; apiKey: string; userId: string }) => {
-    const { lumipathUrl, apiKey, userId } = context;
+  }, context: ToolContext) => {
+    const { apiKey, userId } = context;
     
-    const res = await fetch(`${lumipathUrl}/api/v1/social-posts`, {
+    const res = await fetch(`${LUMIPATH_BASE_URL}/api/v1/social-posts`, {
       method: 'POST',
       headers: {
         'x-api-key': apiKey,
@@ -424,10 +434,10 @@ export const insights = {
     },
     required: ["connectionId"]
   },
-  execute: async ({ connectionId }: { connectionId: string }, context: { lumipathUrl: string; apiKey: string; userId: string }) => {
-    const { lumipathUrl, apiKey, userId } = context;
+  execute: async ({ connectionId }: { connectionId: string }, context: ToolContext) => {
+    const { apiKey, userId } = context;
     
-    const res = await fetch(`${lumipathUrl}/api/v1/insights/${connectionId}`, {
+    const res = await fetch(`${LUMIPATH_BASE_URL}/api/v1/insights/${connectionId}`, {
       headers: {
         'x-api-key': apiKey,
         'x-user-id': userId
@@ -457,14 +467,14 @@ export const knowledgeSearch = {
     },
     required: ["query"]
   },
-  execute: async ({ query, limit }: { query: string; limit?: number }, context: { lumipathUrl: string; apiKey: string; userId: string }) => {
-    const { lumipathUrl, apiKey, userId } = context;
+  execute: async ({ query, limit }: { query: string; limit?: number }, context: ToolContext) => {
+    const { apiKey, userId } = context;
     
     const params = new URLSearchParams();
     params.set('query', query);
     if (limit) params.set('limit', String(limit));
     
-    const res = await fetch(`${lumipathUrl}/api/v1/knowledge/search?${params}`, {
+    const res = await fetch(`${LUMIPATH_BASE_URL}/api/v1/knowledge/search?${params}`, {
       headers: {
         'x-api-key': apiKey,
         'x-user-id': userId
@@ -494,17 +504,17 @@ export const webSearch = {
     },
     required: ["query"]
   },
-  execute: async ({ query, maxResults }: { query: string; maxResults?: number }, context: { lumipathUrl: string; apiKey: string; userId: string }) => {
-    const { lumipathUrl, apiKey, userId } = context;
+  execute: async ({ query, maxResults }: { query: string; maxResults?: number }, context: ToolContext) => {
+    // web_search 不需要 lumipath API key，使用 Tavily API
+    const tavilyApiKey = process.env.TAVILY_API_KEY;
     
-    // 调用 Tavily API
     const res = await fetch('https://api.tavily.com/search', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        api_key: apiKey,  // 注意：可能需要不同的 API key
+        api_key: tavilyApiKey,
         query,
         max_results: maxResults || 5,
         search_depth: 'basic'

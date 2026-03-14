@@ -15,9 +15,11 @@
 
 ## 前置要求
 
-此 skill 依赖 LumiPath 后端 API，需要以下环境变量：
+此 skill 依赖 LumiPath 后端 API，后端地址固定为 `https://lumipath.cn`。
+
+环境变量：
 - `X_API_KEY`: LumiPath API 密钥
-- `NEXTAUTH_URL`: LumiPath 后端地址（默认 http://localhost:3001）
+- `TAVILY_API_KEY`: Tavily API 密钥（仅 web_search 需要）
 
 ## 项目结构
 
