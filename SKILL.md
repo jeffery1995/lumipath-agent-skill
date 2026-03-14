@@ -17,9 +17,9 @@
 
 此 skill 依赖 LumiPath 后端 API，后端地址固定为 `https://lumipath.cn`。
 
-环境变量：
-- `X_API_KEY`: LumiPath API 密钥
-- `TAVILY_API_KEY`: Tavily API 密钥（仅 web_search 需要）
+认证方式：用户 API Key (格式: `lumi_xxx`)，通过 `Authorization: Bearer` 头传递。
+
+调用时只需传入用户 API Key，后端会自动解析出 userId。
 
 ## 项目结构
 
@@ -33,7 +33,7 @@
     └── tools-reference.ts    # 原始代码参考
 ```
 
-## 工具列表 (12个)
+## 工具列表 (11个)
 
 ### 1. connections_list - 查看已连接的社交账号
 
@@ -194,16 +194,6 @@
 
 ---
 
-### 12. web_search - 网页搜索
-
-搜索最新信息、新闻、趋势。
-
-**参数**:
-- `query`: 搜索查询 (必填)
-- `maxResults` (可选): 结果数量（默认 5，最大 10）
-
----
-
 ## 工具调用方式
 
 ### 方式 1: 直接导入使用 (Node.js)
@@ -211,11 +201,9 @@
 ```typescript
 import { videoUploadFromUrl, localizationStart, localizationGet } from './tools';
 
-// 初始化上下文
+// 初始化上下文 - 只需用户 API Key
 const context = {
-  lumipathUrl: process.env.NEXTAUTH_URL || 'http://localhost:3001',
-  apiKey: process.env.X_API_KEY || '',
-  userId: 'user-id-here'
+  apiKey: 'lumi_xxx' // 用户在 LumiPath 生成的 API Key
 };
 
 // 1. 上传视频

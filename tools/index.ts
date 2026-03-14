@@ -1,22 +1,40 @@
 /**
  * LumiPath Agent Tools - Tool Handlers
  * 
- * 这些是实际的工具实现，通过 HTTP API 调用 LumiPath 后端
  * 后端地址: https://lumipath.cn
- * 适用于 OpenClaw 或任何需要调用 LumiPath API 的场景
+ * 认证方式: Authorization: Bearer lumi_xxx (用户 API Key)
  */
 
-import { z } from "zod";
-
-// LumiPath 后端地址
 const LUMIPATH_BASE_URL = "https://lumipath.cn";
 
 // ============================================================================
-// Context 类型定义
+// Context 类型定义 - 只需用户 API Key
 // ============================================================================
 interface ToolContext {
-  apiKey: string;
-  userId: string;
+  apiKey: string; // 用户 API Key (格式: lumi_xxx)
+}
+
+// ============================================================================
+// 通用 fetch 包装器
+// ============================================================================
+async function lumipathFetch(endpoint: string, options: RequestInit, context: ToolContext) {
+  const { apiKey } = context;
+  
+  const res = await fetch(`${LUMIPATH_BASE_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      ...options.headers,
+    }
+  });
+  
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ error: res.statusText }));
+    return { error: error.error || `Request failed: ${res.statusText}` };
+  }
+  
+  return res.json();
 }
 
 // ============================================================================
@@ -35,21 +53,8 @@ export const connectionsList = {
     }
   },
   execute: async ({ platform }: { platform?: string }, context: ToolContext) => {
-    const { apiKey, userId } = context;
-    
-    const res = await fetch(`${LUMIPATH_BASE_URL}/api/v1/accounts?linked=true${platform ? `&platform=${platform}` : ''}`, {
-      headers: {
-        'x-api-key': apiKey,
-        'x-user-id': userId
-      }
-    });
-    
-    if (!res.ok) {
-      return { error: `Failed to fetch connections: ${res.statusText}` };
-    }
-    
-    const data = await res.json();
-    return data;
+    const endpoint = `/api/v1/accounts?linked=true${platform ? `&platform=${platform}` : ''}`;
+    return lumipathFetch(endpoint, { method: 'GET' }, context);
   }
 };
 
@@ -74,25 +79,10 @@ export const ttsList = {
     }
   },
   execute: async ({ language, gender }: { language?: string; gender?: string }, context: ToolContext) => {
-    const { apiKey, userId } = context;
-    
     const params = new URLSearchParams();
     if (language) params.set('language', language);
     if (gender) params.set('gender', gender);
-    
-    const res = await fetch(`${LUMIPATH_BASE_URL}/api/v1/tts?${params}`, {
-      headers: {
-        'x-api-key': apiKey,
-        'x-user-id': userId
-      }
-    });
-    
-    if (!res.ok) {
-      return { error: `Failed to fetch TTS voices: ${res.statusText}` };
-    }
-    
-    const data = await res.json();
-    return data;
+    return lumipathFetch(`/api/v1/tts?${params}`, { method: 'GET' }, context);
   }
 };
 
@@ -111,26 +101,11 @@ export const videoList = {
     }
   },
   execute: async ({ page, limit, search }: { page?: number; limit?: number; search?: string }, context: ToolContext) => {
-    const { apiKey, userId } = context;
-    
     const params = new URLSearchParams();
     params.set('page', String(page || 1));
     params.set('limit', String(limit || 10));
     if (search) params.set('search', search);
-    
-    const res = await fetch(`${LUMIPATH_BASE_URL}/api/v1/videos?${params}`, {
-      headers: {
-        'x-api-key': apiKey,
-        'x-user-id': userId
-      }
-    });
-    
-    if (!res.ok) {
-      return { error: `Failed to fetch videos: ${res.statusText}` };
-    }
-    
-    const data = await res.json();
-    return data;
+    return lumipathFetch(`/api/v1/videos?${params}`, { method: 'GET' }, context);
   }
 };
 
@@ -150,24 +125,10 @@ export const videoUploadFromUrl = {
     required: ["url"]
   },
   execute: async ({ url, filename, title }: { url: string; filename?: string; title?: string }, context: ToolContext) => {
-    const { apiKey, userId } = context;
-    
-    const res = await fetch(`${LUMIPATH_BASE_URL}/api/v1/videos/upload`, {
+    return lumipathFetch('/api/v1/videos/upload', {
       method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'x-user-id': userId,
-        'Content-Type': 'application/json'
-      },
       body: JSON.stringify({ url, filename, title })
-    });
-    
-    if (!res.ok) {
-      return { error: `Failed to upload video: ${res.statusText}` };
-    }
-    
-    const data = await res.json();
-    return data;
+    }, context);
   }
 };
 
@@ -207,24 +168,10 @@ export const localizationStart = {
     ocr?: boolean;
     copyright?: boolean;
   }, context: ToolContext) => {
-    const { apiKey, userId } = context;
-    
-    const res = await fetch(`${LUMIPATH_BASE_URL}/api/v1/localization`, {
+    return lumipathFetch('/api/v1/localization', {
       method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'x-user-id': userId,
-        'Content-Type': 'application/json'
-      },
       body: JSON.stringify(params)
-    });
-    
-    if (!res.ok) {
-      return { error: `Failed to start localization: ${res.statusText}` };
-    }
-    
-    const data = await res.json();
-    return data;
+    }, context);
   }
 };
 
@@ -244,27 +191,12 @@ export const localizationList = {
     }
   },
   execute: async ({ vid, status, page, limit }: { vid?: string; status?: string; page?: number; limit?: number }, context: ToolContext) => {
-    const { apiKey, userId } = context;
-    
     const params = new URLSearchParams();
     if (vid) params.set('vid', vid);
     if (status) params.set('status', status);
     if (page) params.set('page', String(page));
     if (limit) params.set('limit', String(limit));
-    
-    const res = await fetch(`${LUMIPATH_BASE_URL}/api/v1/localization?${params}`, {
-      headers: {
-        'x-api-key': apiKey,
-        'x-user-id': userId
-      }
-    });
-    
-    if (!res.ok) {
-      return { error: `Failed to fetch localization tasks: ${res.statusText}` };
-    }
-    
-    const data = await res.json();
-    return data;
+    return lumipathFetch(`/api/v1/localization?${params}`, { method: 'GET' }, context);
   }
 };
 
@@ -282,21 +214,7 @@ export const localizationGet = {
     required: ["taskId"]
   },
   execute: async ({ taskId }: { taskId: string }, context: ToolContext) => {
-    const { apiKey, userId } = context;
-    
-    const res = await fetch(`${LUMIPATH_BASE_URL}/api/v1/localization?taskId=${taskId}`, {
-      headers: {
-        'x-api-key': apiKey,
-        'x-user-id': userId
-      }
-    });
-    
-    if (!res.ok) {
-      return { error: `Failed to get localization status: ${res.statusText}` };
-    }
-    
-    const data = await res.json();
-    return data;
+    return lumipathFetch(`/api/v1/localization?taskId=${taskId}`, { method: 'GET' }, context);
   }
 };
 
@@ -349,24 +267,10 @@ export const repurpose = {
       instagramConnectionIds?: string[];
     };
   }, context: ToolContext) => {
-    const { apiKey, userId } = context;
-    
-    const res = await fetch(`${LUMIPATH_BASE_URL}/api/v1/repurpose`, {
+    return lumipathFetch('/api/v1/repurpose', {
       method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'x-user-id': userId,
-        'Content-Type': 'application/json'
-      },
       body: JSON.stringify(params)
-    });
-    
-    if (!res.ok) {
-      return { error: `Failed to start repurpose: ${res.statusText}` };
-    }
-    
-    const data = await res.json();
-    return data;
+    }, context);
   }
 };
 
@@ -400,24 +304,10 @@ export const socialPost = {
     youtubeConnectionIds?: string[];
     instagramConnectionIds?: string[];
   }, context: ToolContext) => {
-    const { apiKey, userId } = context;
-    
-    const res = await fetch(`${LUMIPATH_BASE_URL}/api/v1/social-posts`, {
+    return lumipathFetch('/api/v1/social-posts', {
       method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'x-user-id': userId,
-        'Content-Type': 'application/json'
-      },
       body: JSON.stringify({ ...params, contentType: "VIDEO" })
-    });
-    
-    if (!res.ok) {
-      return { error: `Failed to post to social media: ${res.statusText}` };
-    }
-    
-    const data = await res.json();
-    return data;
+    }, context);
   }
 };
 
@@ -435,21 +325,7 @@ export const insights = {
     required: ["connectionId"]
   },
   execute: async ({ connectionId }: { connectionId: string }, context: ToolContext) => {
-    const { apiKey, userId } = context;
-    
-    const res = await fetch(`${LUMIPATH_BASE_URL}/api/v1/insights/${connectionId}`, {
-      headers: {
-        'x-api-key': apiKey,
-        'x-user-id': userId
-      }
-    });
-    
-    if (!res.ok) {
-      return { error: `Failed to fetch insights: ${res.statusText}` };
-    }
-    
-    const data = await res.json();
-    return data;
+    return lumipathFetch(`/api/v1/insights/${connectionId}`, { method: 'GET' }, context);
   }
 };
 
@@ -468,74 +344,15 @@ export const knowledgeSearch = {
     required: ["query"]
   },
   execute: async ({ query, limit }: { query: string; limit?: number }, context: ToolContext) => {
-    const { apiKey, userId } = context;
-    
     const params = new URLSearchParams();
     params.set('query', query);
     if (limit) params.set('limit', String(limit));
-    
-    const res = await fetch(`${LUMIPATH_BASE_URL}/api/v1/knowledge/search?${params}`, {
-      headers: {
-        'x-api-key': apiKey,
-        'x-user-id': userId
-      }
-    });
-    
-    if (!res.ok) {
-      return { error: `Failed to search knowledge base: ${res.statusText}` };
-    }
-    
-    const data = await res.json();
-    return data;
+    return lumipathFetch(`/api/v1/knowledge/search?${params}`, { method: 'GET' }, context);
   }
 };
 
 // ============================================================================
-// 工具 12: web_search - 网页搜索
-// ============================================================================
-export const webSearch = {
-  name: "web_search",
-  description: "Search the web for current information, news, trends, and up-to-date data",
-  inputSchema: {
-    type: "object",
-    properties: {
-      query: { type: "string", description: "The search query" },
-      maxResults: { type: "number", minimum: 1, maximum: 10, default: 5 }
-    },
-    required: ["query"]
-  },
-  execute: async ({ query, maxResults }: { query: string; maxResults?: number }, context: ToolContext) => {
-    // web_search 不需要 lumipath API key，使用 Tavily API
-    const tavilyApiKey = process.env.TAVILY_API_KEY;
-    
-    const res = await fetch('https://api.tavily.com/search', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        api_key: tavilyApiKey,
-        query,
-        max_results: maxResults || 5,
-        search_depth: 'basic'
-      })
-    });
-    
-    if (!res.ok) {
-      return { error: `Search failed: ${res.statusText}` };
-    }
-    
-    const data = await res.json();
-    return (data.results || []).map((r: { title: string; url: string; content: string }) => ({
-      title: r.title,
-      url: r.url,
-      content: r.content
-    }));
-  }
-};
-
-// ============================================================================
-// 导出所有工具
+// 导出所有工具 (11个 - 已移除 web_search)
 // ============================================================================
 export const allTools = [
   connectionsList,
@@ -548,8 +365,7 @@ export const allTools = [
   repurpose,
   socialPost,
   insights,
-  knowledgeSearch,
-  webSearch
+  knowledgeSearch
 ];
 
 export default allTools;
